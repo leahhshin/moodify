@@ -5,6 +5,8 @@ from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
 from textblob import TextBlob
+from transformers import pipeline
+
 from spotify_genius import get_recently_played_songs
 
 st.set_page_config(page_title="Moodify", page_icon="🎵")
@@ -31,14 +33,34 @@ def load_model():
 with st.spinner("Loading embedding model..."):
     model = load_model()
 
+## Using TextBlob
+# def get_sentiment(text):
+#     score = TextBlob(text).sentiment.polarity
+#     if score > 0:
+#         return 'positive'
+#     elif score < 0:
+#         return 'negative'
+#     else:
+#         return 'neutral'
+    
+## Using BERT    
+
+@st.cache_resource
+def load_sentiment_model():
+    return pipeline("sentiment-analysis", model="nlptown/bert-base-multilingual-uncased-sentiment")
+
+sentiment_pipeline = load_sentiment_model()
+
 def get_sentiment(text):
-    score = TextBlob(text).sentiment.polarity
-    if score > 0:
-        return 'positive'
-    elif score < 0:
+    result = sentiment_pipeline(text[:512])[0] 
+    label = result['label']
+    if '1' in label or '2' in label:
         return 'negative'
-    else:
+    elif '3' in label:
         return 'neutral'
+    else:
+        return 'positive'
+
 
 def recommend_songs(user_text):
     if df.empty:
